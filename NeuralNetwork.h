@@ -6,7 +6,7 @@
 
 using std::shared_ptr;
 
-namespace second
+namespace NN
 {
 
     double sigmoid(double x) { return 1 / (1 + exp(-x)); }
@@ -374,12 +374,12 @@ namespace second
         }
     };
 
-    class NeuralNetwork
+    class Model
     {
         std::vector<shared_ptr<Layer>> layers;
 
     public:
-        NeuralNetwork(const std::vector<shared_ptr<Layer>> &layers) : layers(layers)
+        Model(const std::vector<shared_ptr<Layer>> &layers) : layers(layers)
         {
             for (size_t i = 1; i < layers.size(); ++i)
             {

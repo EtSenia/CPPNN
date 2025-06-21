@@ -17,11 +17,11 @@ void *operator new(size_t size)
 
 void second_nn(int epochs)
 {
-    second::NeuralNetwork nn({make_shared<second::InputLayer>(2),
-                              make_shared<second::DenseLayer>(3),
-                              make_shared<second::ActivationSigmoid>(),
-                              make_shared<second::DenseLayer>(2),
-                              make_shared<second::ActivationSigmoid>()});
+    NN::Model nn({make_shared<NN::InputLayer>(2),
+                  make_shared<NN::DenseLayer>(3),
+                  make_shared<NN::ActivationSigmoid>(),
+                  make_shared<NN::DenseLayer>(2),
+                  make_shared<NN::ActivationSigmoid>()});
 
     std::cout << "Number of allocations init: " << s_AllocationCount-- << std::endl;
     Tensor input(
@@ -55,12 +55,11 @@ void second_nn(int epochs)
 
 void conv_example()
 {
-    using namespace second;
+    using namespace NN;
 
-    auto conv = std::make_shared<Conv2DLayer>(1, 2); // 1 filtro, tamaño 2x2
-    conv->connect(1);                                // 1 canal de entrada
+    auto conv = std::make_shared<Conv2DLayer>(1, 2);
+    conv->connect(1);
 
-    // Forzamos los pesos del filtro: filtro[0][0] (único filtro, único canal)
     conv->filters(0, 0, 0, 0) = 1.0;
     conv->filters(0, 0, 0, 1) = 0.0;
     conv->filters(0, 0, 1, 0) = 0.0;
@@ -89,7 +88,7 @@ void conv_example()
 
 void conv_example_larger()
 {
-    using namespace second;
+    using namespace NN;
 
     Tensor input(1, 28, 28); // Imagen de entrada de 28x28 y 1 canal
     input.fill(0.0);         // Llenamos con ceros, puede ser con datos aleatorios
@@ -134,14 +133,14 @@ void conv_example_larger()
     std::cout << "Flatten - Shape: (" << output6.get_dim(0) << ")\n";
 
     // Capa Densa: 64 neuronas
-    second::DenseLayer dense(64);
+    DenseLayer dense(64);
     dense.connect(576);
     Tensor output7;
     dense.forward(output6, output7);
     std::cout << "Capa Densa (64 neuronas) - Shape: (" << output7.get_dim(0) << ")\n";
 
     // Capa de salida: 10 neuronas
-    second::DenseLayer dense_out(10);
+    DenseLayer dense_out(10);
     dense_out.connect(64);
     Tensor output8;
     dense_out.forward(output7, output8);
@@ -150,22 +149,19 @@ void conv_example_larger()
 
 void conv_example_larger2()
 {
-    using namespace second; // Asumo que tu espacio de nombres es 'second'
+    using namespace NN;
 
-    // 1. Imagen de entrada de 7x7 con 1 canal
-    Tensor input(1, 7, 7); // Imagen de 7x7 y 1 canal
-    input.fill(1.0);       // Llenamos con 1.0 (o podrías usar ceros o valores aleatorios)
+    Tensor input(1, 7, 7);
+    input.fill(1.0);
 
-    // 2. Capa Conv2D #1: 2 filtros de 3x3
     Conv2DLayer conv1(2, 3);
-    conv1.connect(1); // Conectamos con 1 canal de entrada
+    conv1.connect(1);
     Tensor output1;
     conv1.forward(input, output1);
     std::cout << "Capa Conv2D #1 (2 filtros 3x3) - Shape: ("
               << output1.get_dim(0) << ", " << output1.get_dim(1) << ", "
               << output1.get_dim(2) << ")\n";
 
-    // 3. Capa MaxPooling: 2x2
     MaxPooling2D pool1(2);
     Tensor output2;
     pool1.forward(output1, output2);
@@ -173,21 +169,19 @@ void conv_example_larger2()
               << output2.get_dim(0) << ", " << output2.get_dim(1) << ", "
               << output2.get_dim(2) << ")\n";
 
-    // 6. Capa Flatten
     Flatten flatten;
     Tensor output5;
     flatten.forward(output2, output5);
     std::cout << "Flatten - Shape: (" << output5.get_dim(0) << ")\n";
 
-    // 7. Capa Densa: 4 neuronas
-    second::DenseLayer dense(4);
+    DenseLayer dense(4);
     dense.connect(8); // Tamaño de la entrada de la capa densa (2x2 = 4)
     Tensor output6;
     dense.forward(output5, output6);
     std::cout << "Capa Densa (4 neuronas) - Shape: (" << output6.get_dim(0) << ")\n";
 
     // 8. Capa de salida: 2 neuronas
-    second::DenseLayer dense_out(2);
+    DenseLayer dense_out(2);
     dense_out.connect(4); // Conectamos con 4 neuronas de entrada
     Tensor output7;
     dense_out.forward(output6, output7);
@@ -210,66 +204,4 @@ int main()
 
     std::cout << "Time: " << time_first << std::endl;
     std::cout << "Number of allocations: " << s_AllocationCount << std::endl;
-
-    Tensor input(
-        {{0., 0.},
-         {0., 1.},
-         {1., 0.},
-         {1., 1.}});
-
-    Tensor target(
-        {{1., 0.},
-         {0., 1.},
-         {0., 1.},
-         {1., 0.}});
-
-    std::cout << "Before: " << input.get_dim(0) << ", " << input.get_dim(1) << std::endl;
-    Tensor temp = (input + target + target) * target + target;
-    temp.print();
-    std::cout << "Before: " << input.get_dim(0) << ", " << input.get_dim(1) << std::endl;
-    Tensor temp2 = input;
-    temp2 += target;
-    temp2 += target;
-    temp2 *= target;
-    temp2 += target;
-    temp2.print();
-
-    std::cout << "Number of allocations: " << s_AllocationCount << std::endl;
-
-    Tensor output;
-    Tensor weights(2, 2);
-    weights.fill(3.0);
-    Tensor biases(2);
-    biases.fill(0.0);
-
-    Tensor in(2);
-    in.fill(1.0);
-
-    output.swap(in.dot(weights.transpose_view(0, 1)) + biases);
-    output.print();
-
-    /*
-    srand(static_cast<unsigned int>(time(0)));
-
-    int epochs = 1;
-
-    auto start = std::chrono::high_resolution_clock::now();
-    auto end = std::chrono::high_resolution_clock::now();
-    double time_first = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    start = std::chrono::high_resolution_clock::now();
-    std::cout << "\nSecond NN" << std::endl;
-    second_nn(epochs);
-    end = std::chrono::high_resolution_clock::now();
-
-    double time_second = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    std::cout << "Time first: " << time_first << std::endl;
-    std::cout << "Time second: " << time_second << std::endl;
-
-    // conv_example();
-
-    // conv_example_larger();
-
-    conv_example_larger2();
-    */
 }
